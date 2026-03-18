@@ -6,6 +6,7 @@ import streamlit as st
 
 # ======================================
 # CONFIGURATION DE LA PAGE
+# ======================================
 
 st.set_page_config(
     page_title="Estimation immobilière",
@@ -15,21 +16,26 @@ st.set_page_config(
 )
 
 # ======================================
-# CHARGEMENT DU MODÈLE
-
+# CHEMINS
+# ======================================
 
 project_root = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(project_root, "models", "house_price_model.pkl")
-trained_model = joblib.load(model_path)
-
-# CHEMIN DE L'IMAGE
-
-
 banner_image_path = os.path.join(project_root, "images", "real_estate_banner.jpeg")
 
+# ======================================
+# CHARGEMENT DU MODÈLE
+# ======================================
 
-# STYLE CSS 
+@st.cache_resource
+def load_model():
+    return joblib.load(model_path)
 
+trained_model = load_model()
+
+# ======================================
+# STYLE CSS
+# ======================================
 
 st.markdown(
     """
@@ -169,6 +175,7 @@ st.markdown(
 
 # ======================================
 # SIDEBAR : SAISIE
+# ======================================
 
 with st.sidebar:
     st.header("Entrée")
@@ -204,6 +211,7 @@ with st.sidebar:
 
 # ======================================
 # HERO PRINCIPAL
+# ======================================
 
 hero_left, hero_right = st.columns([1.2, 1], gap="large")
 
@@ -239,6 +247,7 @@ with hero_right:
 
 # ======================================
 # À PROPOS
+# ======================================
 
 st.markdown(
     """
@@ -255,140 +264,170 @@ st.markdown(
 )
 
 # ======================================
-# DONNÉES D'ENTRÉE
+# CONSTRUCTION DES DONNÉES D'ENTRÉE
+# ======================================
 
-input_data = pd.DataFrame({
-    "area": [area],
-    "bedrooms": [bedrooms],
-    "bathrooms": [bathrooms],
-    "stories": [stories],
-    "mainroad": [mainroad],
-    "guestroom": [guestroom],
-    "basement": [basement],
-    "hotwaterheating": [hotwaterheating],
-    "airconditioning": [airconditioning],
-    "parking": [parking],
-    "prefarea": [prefarea],
-    "furnishingstatus": [furnishingstatus]
-})
+def build_single_input_dataframe() -> pd.DataFrame:
+    """
+    Construit le DataFrame attendu par le pipeline entraîné.
+    Les noms de colonnes doivent correspondre EXACTEMENT
+    aux colonnes utilisées pendant l'entraînement.
+    """
+    return pd.DataFrame(
+        [{
+            "area": area,
+            "bedrooms": bedrooms,
+            "bathrooms": bathrooms,
+            "stories": stories,
+            "mainroad": mainroad,
+            "guestroom": guestroom,
+            "basement": basement,
+            "hotwaterheating": hotwaterheating,
+            "airconditioning": airconditioning,
+            "parking": parking,
+            "prefarea": prefarea,
+            "furnishingstatus": furnishingstatus
+        }]
+    )
 
 # ======================================
-# PRÉDICTION 
+# VALIDATION
+# ======================================
 
-
-if predict_button:
-    validation_errors = []
+def validate_inputs() -> list[str]:
+    errors = []
 
     if area <= 0:
-        validation_errors.append("La surface doit être supérieure à 0.")
+        errors.append("La surface doit être supérieure à 0.")
     if bedrooms <= 0:
-        validation_errors.append("Le nombre de chambres doit être supérieur à 0.")
+        errors.append("Le nombre de chambres doit être supérieur à 0.")
     if bathrooms <= 0:
-        validation_errors.append("Le nombre de salles de bain doit être supérieur à 0.")
+        errors.append("Le nombre de salles de bain doit être supérieur à 0.")
     if stories <= 0:
-        validation_errors.append("Le nombre d’étages doit être supérieur à 0.")
+        errors.append("Le nombre d’étages doit être supérieur à 0.")
     if parking < 0:
-        validation_errors.append("Le nombre de places de parking ne peut pas être négatif.")
+        errors.append("Le nombre de places de parking ne peut pas être négatif.")
+
+    return errors
+
+# ======================================
+# PRÉDICTION SIMPLE
+# ======================================
+
+if predict_button:
+    validation_errors = validate_inputs()
 
     if validation_errors:
-        for error in validation_errors:
-            st.error(error)
+        for error_message in validation_errors:
+            st.error(error_message)
     else:
-        with st.spinner("Calcul de l'estimation en cours..."):
-            prediction_result = trained_model.predict(input_data)[0]
+        input_data = build_single_input_dataframe()
 
-        formatted_price = f"{prediction_result:,.0f}".replace(",", " ")
+        try:
+            with st.spinner("Calcul de l'estimation en cours..."):
+                prediction_result = trained_model.predict(input_data)[0]
 
-        st.success("✔️ Estimation générée avec succès")
+            formatted_price = f"{prediction_result:,.0f}".replace(",", " ")
 
-        # Résumé affiché 
-        summary_col_1, summary_col_2, summary_col_3 = st.columns(3, gap="medium")
+            st.success("✔️ Estimation générée avec succès")
 
-        with summary_col_1:
-            st.markdown(
-                f"""
-                <div class="mini-card">
-                    <div class="section-title">Surface</div>
-                    <div style="font-size:2rem; font-weight:800; color:#0f172a;">
-                        {f"{area:,}".replace(",", " ")} m²
+            # Résumé affiché seulement après prédiction
+            summary_col_1, summary_col_2, summary_col_3 = st.columns(3, gap="medium")
+
+            with summary_col_1:
+                st.markdown(
+                    f"""
+                    <div class="mini-card">
+                        <div class="section-title">Surface</div>
+                        <div style="font-size:2rem; font-weight:800; color:#0f172a;">
+                            {f"{area:,}".replace(",", " ")} m²
+                        </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                    """,
+                    unsafe_allow_html=True
+                )
 
-        with summary_col_2:
-            st.markdown(
-                f"""
-                <div class="mini-card">
-                    <div class="section-title">Chambres</div>
-                    <div style="font-size:2rem; font-weight:800; color:#0f172a;">
-                        {bedrooms}
+            with summary_col_2:
+                st.markdown(
+                    f"""
+                    <div class="mini-card">
+                        <div class="section-title">Chambres</div>
+                        <div style="font-size:2rem; font-weight:800; color:#0f172a;">
+                            {bedrooms}
+                        </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                    """,
+                    unsafe_allow_html=True
+                )
 
-        with summary_col_3:
-            st.markdown(
-                f"""
-                <div class="mini-card">
-                    <div class="section-title">Salles de bain</div>
-                    <div style="font-size:2rem; font-weight:800; color:#0f172a;">
-                        {bathrooms}
+            with summary_col_3:
+                st.markdown(
+                    f"""
+                    <div class="mini-card">
+                        <div class="section-title">Salles de bain</div>
+                        <div style="font-size:2rem; font-weight:800; color:#0f172a;">
+                            {bathrooms}
+                        </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                    """,
+                    unsafe_allow_html=True
+                )
 
-        placeholder = st.empty()
-        step_value = max(1, int(prediction_result / 30))
+            placeholder = st.empty()
+            step_value = max(1, int(prediction_result / 30))
 
-        for i in range(0, int(prediction_result), step_value):
+            for current_value in range(0, int(prediction_result), step_value):
+                placeholder.markdown(
+                    f"""
+                    <div class="result-card">
+                        <div class="result-label">Estimation du prix</div>
+                        <div class="result-value">{f"{current_value:,.0f}".replace(",", " ")} FCFA</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                time.sleep(0.01)
+
             placeholder.markdown(
                 f"""
                 <div class="result-card">
                     <div class="result-label">Estimation du prix</div>
-                    <div class="result-value">{f"{i:,.0f}".replace(",", " ")} FCFA</div>
+                    <div class="result-value">{formatted_price} FCFA</div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-            time.sleep(0.01)
 
-        placeholder.markdown(
-            f"""
-            <div class="result-card">
-                <div class="result-label">Estimation du prix</div>
-                <div class="result-value">{formatted_price} FCFA</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            st.caption("💡 Cette estimation est basée sur un modèle de Machine Learning entraîné sur des données immobilières.")
 
-        st.caption("💡 Cette estimation est basée sur un modèle de Machine Learning entraîné sur des données immobilières.")
-
-        st.markdown(
-            """
-            <div class="soft-card">
-                <div class="section-title">Lecture rapide</div>
-                <div class="section-text">
-                    Les facteurs les plus influents dans l’estimation incluent généralement la surface,
-                    le nombre de salles de bain, la climatisation, le parking et le nombre d’étages.
+            st.markdown(
+                """
+                <div class="soft-card">
+                    <div class="section-title">Lecture rapide</div>
+                    <div class="section-text">
+                        Les facteurs les plus influents dans l’estimation incluent généralement la surface,
+                        le nombre de salles de bain, la climatisation, le parking et le nombre d’étages.
+                    </div>
                 </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+                """,
+                unsafe_allow_html=True
+            )
+
+        except Exception as prediction_error:
+            st.error("Une erreur est survenue lors de la prédiction.")
+            st.exception(prediction_error)
+            st.info(
+                "Si cette erreur apparaît surtout en ligne mais pas en local, "
+                "le modèle sauvegardé est probablement incompatible avec la version "
+                "de scikit-learn utilisée sur Streamlit Cloud."
+            )
 
 else:
     st.info("Renseignez les informations dans la barre latérale puis cliquez sur « Estimer le prix ».")
 
 # ======================================
 # PRÉDICTIONS MULTIPLES VIA CSV
-
+# ======================================
 
 if uploaded_csv is not None:
     try:
@@ -402,7 +441,7 @@ if uploaded_csv is not None:
             """,
             unsafe_allow_html=True
         )
-        st.dataframe(uploaded_data.head())
+        st.dataframe(uploaded_data.head(), use_container_width=True)
 
         required_columns = [
             "area", "bedrooms", "bathrooms", "stories", "mainroad",
@@ -410,38 +449,44 @@ if uploaded_csv is not None:
             "parking", "prefarea", "furnishingstatus"
         ]
 
-        missing_columns = [column for column in required_columns if column not in uploaded_data.columns]
+        missing_columns = [
+            column_name for column_name in required_columns
+            if column_name not in uploaded_data.columns
+        ]
 
         if missing_columns:
             st.error(f"Colonnes manquantes dans le CSV : {missing_columns}")
         else:
-            uploaded_data["predicted_price_fcfa"] = trained_model.predict(uploaded_data)
+            try:
+                uploaded_data["predicted_price_fcfa"] = trained_model.predict(uploaded_data)
 
-            st.markdown(
-                """
-                <div class="soft-card">
-                    <div class="section-title">Résultats des prédictions multiples</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            st.dataframe(uploaded_data)
+                st.markdown(
+                    """
+                    <div class="soft-card">
+                        <div class="section-title">Résultats des prédictions multiples</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                st.dataframe(uploaded_data, use_container_width=True)
 
-    except Exception as error:
-        st.error(f"Erreur lors du traitement du fichier CSV : {error}")
+            except Exception as batch_prediction_error:
+                st.error("Erreur lors de la prédiction du fichier CSV.")
+                st.exception(batch_prediction_error)
+
+    except Exception as csv_error:
+        st.error(f"Erreur lors du traitement du fichier CSV : {csv_error}")
 
 # ======================================
 # FOOTER
-
+# ======================================
 
 st.markdown(
     """
     <div class="footer-note">
         Application développée avec Streamlit dans le cadre d’un projet de machine learning sur la prédiction des prix.
         <br>
-        Auteur : Ange Désiré Boua - Étudiant en Data Science <br>
-        <br>
-        gmail : angedesireboua@gmail.com
+        📧 angedesireboua@gmai.com
     </div>
     """,
     unsafe_allow_html=True
