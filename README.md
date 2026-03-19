@@ -1,6 +1,6 @@
 # 🏠 Prédiction des prix de l’immobilier
 
-## 📌 Description du projet
+##  Description du projet
 
 Cette application web permet d’estimer le prix d’un bien immobilier à partir de ses caractéristiques principales grâce à un modèle de Machine Learning.
 
@@ -8,9 +8,9 @@ L’utilisateur renseigne les informations du logement (surface, nombre de chamb
 
 ---
 
-## 🚀 Démo de l'application
+##  Démo de l'application
 
-👉 (Lien à ajouter après déploiement Streamlit)
+ (Lien à ajouter après déploiement Streamlit)
 
 ---
 
@@ -23,7 +23,7 @@ L’utilisateur renseigne les informations du logement (surface, nombre de chamb
 
 ---
 
-## 🧠 Modèle de Machine Learning
+##  Modèle de Machine Learning
 
 - Type de modèle : Régression supervisée  
 - Algorithme utilisé : Random Forest Regressor  
@@ -43,7 +43,7 @@ L’utilisateur renseigne les informations du logement (surface, nombre de chamb
 
 ---
 
-## 🖥️ Interface utilisateur
+## Interface utilisateur
 
 L’application propose :
 
@@ -53,21 +53,6 @@ L’application propose :
 - Un résumé des caractéristiques après prédiction  
 - Une lecture rapide des facteurs influents  
 - Un upload de fichier CSV pour prédictions multiples  
-
----
-
-## 📁 Structure du projet
-
-house-price-prediction/ 
-    ├── app.py 
-    ├── requirements.txt 
-    ├── README.md │ 
-    ├── models/ 
-    │   └── house_price_model.pkl  
-    ├── images/ │
-    │   └── real_estate_banner.jpeg 
-    │data/
-        └── Housing.csv
 
 ---
 
