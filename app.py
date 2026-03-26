@@ -144,6 +144,7 @@ st.markdown(
             font-size: 1.05rem;
             letter-spacing: 0.3px;
             padding: 0.78rem 1rem;
+            width: 100%;
             box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
             transition: all 0.25s ease;
         }
@@ -178,9 +179,9 @@ st.markdown(
 # ======================================
 
 with st.sidebar:
-    st.header("Entrée")
+    st.header("Entrée des données")
 
-    area = st.number_input("Surface", min_value=500, step=100, value=5000)
+    area = st.number_input("Surface (m²)", min_value=500, step=100, value=5000)
     bedrooms = st.selectbox("Nombre de chambres", options=list(range(1, 11)), index=2)
     bathrooms = st.selectbox("Nombre de salles de bain", options=list(range(1, 11)), index=1)
     stories = st.selectbox("Nombre d’étages", options=list(range(1, 6)), index=1)
@@ -203,7 +204,7 @@ with st.sidebar:
         }[v]
     )
 
-    predict_button = st.button("✨ Estimer le prix", use_container_width=True)
+    predict_button = st.button("✨ Estimer le prix")
 
     st.divider()
     st.subheader("Téléversement du CSV")
@@ -216,7 +217,7 @@ with st.sidebar:
 hero_left, hero_right = st.columns([1.2, 1], gap="large")
 
 with hero_left:
-    st.markdown('<div class="hero-badge">🤖 Powered by AI</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-badge">🤖 Propulsé par l’IA</div>', unsafe_allow_html=True)
     st.markdown('<div class="main-title">Prédiction des prix de l’immobilier</div>', unsafe_allow_html=True)
     st.markdown(
         """
@@ -230,7 +231,7 @@ with hero_left:
 
 with hero_right:
     if os.path.exists(banner_image_path):
-        st.image(banner_image_path, use_container_width=True)
+        st.image(banner_image_path, use_column_width=True)
     else:
         st.markdown(
             """
@@ -268,11 +269,6 @@ st.markdown(
 # ======================================
 
 def build_single_input_dataframe() -> pd.DataFrame:
-    """
-    Construit le DataFrame attendu par le pipeline entraîné.
-    Les noms de colonnes doivent correspondre EXACTEMENT
-    aux colonnes utilisées pendant l'entraînement.
-    """
     return pd.DataFrame(
         [{
             "area": area,
@@ -294,7 +290,7 @@ def build_single_input_dataframe() -> pd.DataFrame:
 # VALIDATION
 # ======================================
 
-def validate_inputs() -> list[str]:
+def validate_inputs() -> list:
     errors = []
 
     if area <= 0:
@@ -331,7 +327,6 @@ if predict_button:
 
             st.success("✔️ Estimation générée avec succès")
 
-            # Résumé affiché seulement après prédiction
             summary_col_1, summary_col_2, summary_col_3 = st.columns(3, gap="medium")
 
             with summary_col_1:
@@ -374,9 +369,10 @@ if predict_button:
                 )
 
             placeholder = st.empty()
-            step_value = max(1, int(prediction_result / 30))
+            final_value = max(0, int(prediction_result))
+            step_value = max(1, int(final_value / 30))
 
-            for current_value in range(0, int(prediction_result), step_value):
+            for current_value in range(0, final_value, step_value):
                 placeholder.markdown(
                     f"""
                     <div class="result-card">
@@ -441,7 +437,8 @@ if uploaded_csv is not None:
             """,
             unsafe_allow_html=True
         )
-        st.dataframe(uploaded_data.head(), use_container_width=True)
+
+        st.dataframe(uploaded_data.head(), use_column_width=True)
 
         required_columns = [
             "area", "bedrooms", "bathrooms", "stories", "mainroad",
@@ -449,10 +446,7 @@ if uploaded_csv is not None:
             "parking", "prefarea", "furnishingstatus"
         ]
 
-        missing_columns = [
-            column_name for column_name in required_columns
-            if column_name not in uploaded_data.columns
-        ]
+        missing_columns = [col for col in required_columns if col not in uploaded_data.columns]
 
         if missing_columns:
             st.error(f"Colonnes manquantes dans le CSV : {missing_columns}")
@@ -468,7 +462,16 @@ if uploaded_csv is not None:
                     """,
                     unsafe_allow_html=True
                 )
-                st.dataframe(uploaded_data, use_container_width=True)
+
+                st.dataframe(uploaded_data, use_column_width=True)
+
+                csv_result = uploaded_data.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="📥 Télécharger le fichier des prédictions",
+                    data=csv_result,
+                    file_name="predictions_immobilieres.csv",
+                    mime="text/csv"
+                )
 
             except Exception as batch_prediction_error:
                 st.error("Erreur lors de la prédiction du fichier CSV.")
@@ -486,7 +489,7 @@ st.markdown(
     <div class="footer-note">
         Application développée avec Streamlit dans le cadre d’un projet de machine learning sur la prédiction des prix.
         <br>
-        📧 angedesireboua@gmai.com
+        📧 angedesireboua@gmail.com
     </div>
     """,
     unsafe_allow_html=True
