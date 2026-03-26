@@ -90,7 +90,6 @@ L’application propose :
 
 ## 📁 Structure du projet
 
-```bash
     house-price-prediction/
     │
     ├── data/               # Données utilisées
@@ -101,7 +100,7 @@ L’application propose :
     ├── requirements.txt    # Dépendances
     └── README.md
 
---- 
+---
 
 ## 📸 Aperçu de l’application
 
@@ -131,6 +130,6 @@ Voici quelques captures d’écran de l’application :
 
 ---
 
-##  Conclusion
+## Conclusion
 
 Ce projet démontre ma capacité à concevoir une solution complète de Data Science, depuis l’analyse des données jusqu’au déploiement d’une application interactive et exploitable.
